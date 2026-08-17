@@ -72,7 +72,7 @@ public class VectorElytra extends Module {
             return;
         }
 
-        double speed = Modules.get().get(ElytraFly.class).horizontalSpeed.get();
+        double speed = Modules.get().get(ElytraFly.class).horizontalSpeed.get() * 10;
         double y = hasAutopilotVector ? event.movement.y : vector.y * speed;
         ((IVec3) event.movement).meteor$set(vector.x * speed, y, vector.z * speed);
     }

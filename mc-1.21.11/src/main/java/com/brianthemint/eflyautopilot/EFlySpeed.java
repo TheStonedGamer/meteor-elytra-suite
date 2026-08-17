@@ -21,6 +21,10 @@ public class EFlySpeed extends Module {
     private final SettingGroup sgManual = settings.createGroup("Manual Speed");
     private final SettingGroup sgAdaptive = settings.createGroup("Adaptive Speed");
 
+    private final Setting<Double> manualBps = sgManual.add(new DoubleSetting.Builder()
+        .name("speed-bps").description("Target EFly speed in blocks per second when adaptive speed is disabled.")
+        .defaultValue(50).range(0, 500).sliderRange(0, 100).build());
+
     private final Setting<Double> manualStep = sgManual.add(new DoubleSetting.Builder()
         .name("speed-step-bps").description("BPS added or removed by the speed keys.")
         .defaultValue(5).range(0, 100).sliderRange(0, 100).build());
@@ -79,7 +83,7 @@ public class EFlySpeed extends Module {
     @Override
     public void onActivate() {
         ElytraFly efly = Modules.get().get(ElytraFly.class);
-        currentBps = efly.horizontalSpeed.get() * 20;
+        currentBps = adaptive.get() ? efly.horizontalSpeed.get() * 200 : manualBps.get();
         originalAcceleration = efly.acceleration.get();
         knownGood = 0;
         knownBad = Double.POSITIVE_INFINITY;
@@ -89,7 +93,7 @@ public class EFlySpeed extends Module {
             currentBps = Mth.clamp(startingBps.get(), minimumBps.get(), maximumBps.get());
             efly.acceleration.set(false);
             applySpeed();
-        }
+        } else applySpeed();
     }
 
     @Override
@@ -106,7 +110,12 @@ public class EFlySpeed extends Module {
 
     @EventHandler
     private void onTick(TickEvent.Pre event) {
-        if (!adaptive.get() || mc.player == null || !mc.player.isFallFlying()) return;
+        if (!adaptive.get()) {
+            currentBps = manualBps.get();
+            applySpeed();
+            return;
+        }
+        if (mc.player == null || !mc.player.isFallFlying()) return;
         Modules.get().get(ElytraFly.class).acceleration.set(false);
         if (cooldownTicks > 0) {
             cooldownTicks--;
@@ -139,8 +148,8 @@ public class EFlySpeed extends Module {
     }
 
     private void changeSpeed(double amount) {
-        ElytraFly efly = Modules.get().get(ElytraFly.class);
-        currentBps = Mth.clamp(efly.horizontalSpeed.get() * 20 + amount, 0, 500);
+        currentBps = Mth.clamp(currentBps + amount, 0, 500);
+        manualBps.set(currentBps);
         if (adaptive.get()) {
             knownGood = 0;
             knownBad = Double.POSITIVE_INFINITY;
@@ -152,7 +161,7 @@ public class EFlySpeed extends Module {
     }
 
     private void applySpeed() {
-        Modules.get().get(ElytraFly.class).horizontalSpeed.set(currentBps / 20);
+        Modules.get().get(ElytraFly.class).horizontalSpeed.set(currentBps / 200);
     }
 
     @Override
