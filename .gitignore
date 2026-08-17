@@ -1,0 +1,9 @@
+.gradle/
+**/.gradle/
+**/build/
+**/run/
+**/libs/*.jar
+*.log
+.idea/
+*.iml
+
